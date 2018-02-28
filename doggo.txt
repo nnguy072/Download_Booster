@@ -1,0 +1,11 @@
+curl -O --proxy localhost:8080 http://cdn1-www.dogtime.com/assets/uploads/gallery/samoyed-dogs-and-puppies/samoyed-dogs-puppies-1.jpg
+curl -O --proxy localhost:8081 http://cdn1-www.dogtime.com/assets/uploads/gallery/samoyed-dogs-and-puppies/samoyed-dogs-puppies-1.jpg
+
+curl -O --proxy localhost:8080 http://xukan.info/files/first.cc
+curl -O --proxy localhost:8081 http://xukan.info/files/first.cc
+
+curl -o test.txt localhost:8000/wordlist_reference.txt
+curl -o test.txt localhost:8000/wordlist_reference.txt
+
+curl -o test.txt --proxy localhost:8081 http://www.gutenberg.org/files/56630/56630-0.txt
+curl -o test.txt --proxy localhost:8080 http://www.gutenberg.org/files/56630/56630-0.txt

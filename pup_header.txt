@@ -1,0 +1,16 @@
+HTTP/1.1 200 OK
+Accept-Ranges: bytes
+Cache-Control: max-age=604800
+Content-Type: image/jpeg
+Date: Sun, 25 Feb 2018 09:59:55 GMT
+edge-control: cache-maxage=604800
+Expires: Sun, 04 Mar 2018 09:59:55 GMT
+Last-Modified: Mon, 12 Sep 2016 20:41:43 GMT
+Server: ECS (oxr/839C)
+Via: 1.1 varnish
+X-Cache: HIT
+X-Cache-Hits: 1
+X-Served-By: app8v-wp.ao.prd.lax
+X-Varnish: 159963216
+Content-Length: 330917
+

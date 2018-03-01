@@ -87,6 +87,12 @@ BUFLEN = 8192
 VERSION = 'Python Proxy/'+__version__
 HTTPVER = 'HTTP/1.1'
 CONTENT_LENGTH = 0
+RANGE_1_DONE = False
+RANGE_2_DONE = False
+SEND_DATA_1 = ""
+SEND_DATA_2 = ""
+ACCEPT_FLAG = True #check if it accepts byte ranges
+
 
 class ConnectionHandler:
     def __init__(self, connection, address, timeout):
@@ -105,6 +111,15 @@ class ConnectionHandler:
         elif self.method in ('OPTIONS', 'GET', 'HEAD', 'POST', 'PUT',
                              'DELETE', 'TRACE'):
             self.method_others()
+
+        #reset globals
+        global SEND_DATA_1, SEND_DATA_2, RANGE_1_DONE, RANGE_2_DONE, CONTENT_LENGTH, ACCEPT_FLAG
+        SEND_DATA_1 = ""
+        SEND_DATA_2 = ""
+        RANGE_1_DONE = False
+        RANGE_2_DONE = False
+        CONTENT_LENGTH = 0
+        ACCEPT_FLAG = True
 
         self.client.close()
         self.target.close()
@@ -131,16 +146,16 @@ class ConnectionHandler:
         self._read_write()
 
     def splitRange(self):
-        range1point5 = CONTENT_LENGTH / 3
-        self.range1 = "bytes=0-" + str(range1point5)
-        self.range2 = "bytes=" + str(range1point5+1) + "-" + str(CONTENT_LENGTH - 1)
-        print "Range stuff"
-        print self.range1
-        print self.range2
-        print CONTENT_LENGTH
-        print range1point5 + 1
-        print CONTENT_LENGTH - range1point5 - 1
-        print "End of Range stuff"
+        splitPoint = CONTENT_LENGTH / 3
+        self.range1 = "bytes=0-" + str(splitPoint - 1)
+        self.range2 = "bytes=" + str(splitPoint) + "-" + str(CONTENT_LENGTH - 1)
+        # print "Range stuff"
+        # print "Range1: " + str(self.range1)
+        # print "Range1 done at: " + str(splitPoint)
+        # print "Range2: " + str(self.range2)
+        # print "Range2 done at: " + str(CONTENT_LENGTH - splitPoint)
+        # print "Content Length: " + str(CONTENT_LENGTH)
+        # print "End of Range stuff"
 
     #forward the packet to its final destination
     def method_others(self):
@@ -162,14 +177,21 @@ class ConnectionHandler:
         self.client_buffer = ''         #1
         self._read_write()
 
+        #if it doesn't just exit
+        #could probably change to just do a single request
+        if(not ACCEPT_FLAG):
+            return
+
         self.method = temp
         self.splitRange()
 
         #TO DO: need to send another request to "target2" that GETs a different range of bytes
         # self.target.send('%s %s %s\r\nHost:%s\r\n\r\n'%(self.method, path, self.protocol, host)+ self.client_buffer)
         self.target.send('%s %s %s\r\nHost:%s\r\nRange: %s\r\n\r\n'%(self.method, path, self.protocol, host, self.range1)+ self.client_buffer)
-        self.target2.send('%s %s %s\r\nHost:%s\r\nRange: %s\r\n\r\n'%(self.method, path, self.protocol, host, self.range2)+ self.client_buffer)
+        self.client_buffer = '' #3
+        self._read_write()
 
+        self.target2.send('%s %s %s\r\nHost:%s\r\nRange: %s\r\nConnection: close\r\n\r\n'%(self.method, path, self.protocol, host, self.range2)+ self.client_buffer)
         self.client_buffer = '' #3
         self._read_write()
 
@@ -191,7 +213,22 @@ class ConnectionHandler:
         return data[index:]
 
     def send_to_client(self, out, header, data_1, data_2):
+        print "Sending..."
         out.send(header + data_1 + data_2)
+        print "Sent."
+
+    def findHeaderInfo(self, header, key):
+        value = ""
+        index = header.find(key, 0)  # +2 bc ": "
+        if(index == -1):
+            print "cannot find " + key
+            return value
+        else:
+            index = index + len(key) + 2
+        newData = header[index:]
+        index2 = newData.find('\r')
+        value = newData[:index2]
+        return value
 
     #"revolving door" to re-direct the packets in the right direction
     def _read_write(self):
@@ -199,11 +236,11 @@ class ConnectionHandler:
         time_out_max = self.timeout
         socs = [self.client, self.target, self.target2]
         count = 0
-        SEND_DATA_1 = ""
-        SEND_DATA_2 = ""
-        RANGE_1_DONE = False
-        RANGE_2_DONE = False
-        SEND_FLAG = False
+        global SEND_DATA_1    #stores data from first range
+        global SEND_DATA_2    #stores data from second rang
+        global RANGE_1_DONE
+        global RANGE_2_DONE
+        SEND_FLAG = False       #true when have correct amount of data
         remove_header_1 = False
         remove_header_2 = False
         header_info = "HTTP/1.1 200 OK\r\n\r\n"
@@ -223,53 +260,39 @@ class ConnectionHandler:
             if data:
                 #TO DO: Check if it's response to the RANGE request and extract the Content-Length
                 if self.method == "HEAD":
-                    #finds where "Content-Length" is in header then parses the actual length
-                    index = data.find("Content-Length", 0) + 16
-                    newData = data[index:]
-                    index2 = newData.find('\r')
+                    #check if it accepts range requests
+                    rangeCheck = self.findHeaderInfo(data, "Accept-Ranges")
+                    if(rangeCheck != "bytes"):
+                        print "Target does not accept range requests."
+                        global ACCEPT_FLAG
+                        ACCEPT_FLAG = False
+                        break
                     global CONTENT_LENGTH
-                    CONTENT_LENGTH = int(newData[:index2])
+                    CONTENT_LENGTH = int(self.findHeaderInfo(data, "Content-Length"))
                     break
-                elif(not SEND_FLAG):
-                    # I think this is how you distinguish between 1 and 2
-                    # SEND_DATA_1 and 2 both have headers in the beginning [confirmed]
-                    # kind of a hack using fileno, better to use header info: ip addr + port
-                    if((in_.fileno() == self.target.fileno()) and not RANGE_1_DONE):
-                        if(not remove_header_1):
-                            data = self.remove_header(data)
-                            remove_header_1 = True
-                        SEND_DATA_1 += data
-                        print "Size of SEND_DATA_1: " + str(len(SEND_DATA_1))
-                    if((in_.fileno() == self.target2.fileno()) and not RANGE_2_DONE):
-                        if(not remove_header_2):
-                            data = self.remove_header(data)
-                            remove_header_2 = True
-                        SEND_DATA_2 += data
-                        print "Size of SEND_DATA_2: " + str(len(SEND_DATA_2))
-
-                    #checks if each request is correct size
-                    #if so then start sending
-                    #Problem: A lot of the time RANGE_2 finishes
-                    #         sometimes both of them finish. Why??
-                    if(len(SEND_DATA_1) == ((CONTENT_LENGTH / 3) + 1)):
+                elif(not RANGE_1_DONE):
+                    #remove header from first recv data | do only once
+                    if(not remove_header_1):
+                        data = self.remove_header(data)
+                        remove_header_1 = True
+                    SEND_DATA_1 += data
+                    # print "Size of SEND_DATA_1: " + str(len(SEND_DATA_1))
+                    if(len(SEND_DATA_1) == (CONTENT_LENGTH / 3)):
                         print "Range 1 Done. Size of SEND_DATA_1: " + str(len(SEND_DATA_1))
                         RANGE_1_DONE = True
-                    if(len(SEND_DATA_2) == (CONTENT_LENGTH - (CONTENT_LENGTH / 3) - 1)):
+                        break
+                    count = 0
+                elif(not RANGE_2_DONE):
+                    if(not remove_header_2):
+                        data = self.remove_header(data)
+                        remove_header_2 = True
+                    SEND_DATA_2 += data
+                    # print "Size of SEND_DATA_2: " + str(len(SEND_DATA_2))
+                    if(len(SEND_DATA_2) == (CONTENT_LENGTH - (CONTENT_LENGTH / 3))):
                         print "Range 2 Done. Size of SEND_DATA_2: " + str(len(SEND_DATA_2))
                         RANGE_2_DONE = True
-                    if(RANGE_1_DONE and RANGE_2_DONE):
-                        print "got both ranges"
-                        SEND_FLAG = True
-                        ## ------------------
-                        #testing this
                         self.send_to_client(out, header_info, SEND_DATA_1, SEND_DATA_2)
                         break
-                        ## -------------------
-                    count = 0
-                elif(SEND_FLAG):
-                    #merge header + both request and send
-                    print "Sending to Client"
-                    out.send(header_info + SEND_DATA_1 + SEND_DATA_2)
                     count = 0
             if count == time_out_max:
                 break

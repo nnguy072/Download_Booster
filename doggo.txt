@@ -13,3 +13,5 @@ curl -o test.txt localhost:8000/wordlist_reference.txt
 *--- bigger image ---*
 curl -O --proxy localhost:8080 http://www.hanedanrpg.com/photos/hanedanrpg/12/55932.jpg
 curl -O --proxy localhost:8081 http://www.hanedanrpg.com/photos/hanedanrpg/12/55932.jpg
+
+sudo mn --custom ~/mininet/custom/topo-2sw-2host.py --topo=mytopo

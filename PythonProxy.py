@@ -102,6 +102,7 @@ class ConnectionHandler:
         newData = header[index:]
         index2 = newData.find('\r')
         value = newData[:index2]
+        print "value: " + value
         return value
 
     #split the CONTENT_LENGTH into two ranges

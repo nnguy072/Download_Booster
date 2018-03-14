@@ -30,7 +30,7 @@ def myNetwork():
     router = net.addHost('router', dpid="0000000000000500")
     server = net.addHost('server', dpid="00000000000001000")
     #h3 = net.addHost('h3')
-	
+
     info( '*** Add links\n')
     """net.addLink(h1, h2)
     net.addLink(h2, s1)
@@ -62,7 +62,7 @@ def myNetwork():
     net.get('s1').start([c0])
     net.get('s2').start([c0])
     #net.get('s3').start([c0])
-    
+
 
     #info( '*** Post configure switches and hosts\n')
     client1.cmd('ifconfig c1-eth1 10.0.1.1 netmask 255.255.255.0')

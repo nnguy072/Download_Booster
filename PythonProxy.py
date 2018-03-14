@@ -34,7 +34,7 @@ class ConnectionHandler:
                 break
 
         #print the request
-        print '%s'%self.client_buffer[:end]#debug
+        print '%s'%self.client_buffer[:end]
 
         data = (self.client_buffer[:end+1]).split()
         self.client_buffer = self.client_buffer[end+1:]
@@ -58,7 +58,7 @@ class ConnectionHandler:
         # CHANGE TO HEAD REQUEST TO GET CONTENT LENGTH
         self.method = "HEAD"
         self.target.send('%s %s %s\n'%(self.method, path, self.protocol) + self.client_buffer)
-        self.client_buffer = ''         #1
+        self.client_buffer = ''
         self._read_write()
 
     def _connect_target(self, host):
@@ -70,10 +70,12 @@ class ConnectionHandler:
             port = 80
         (soc_family, _, _, _, address) = socket.getaddrinfo(host, port)[0]
         self.target = socket.socket(soc_family)
+        self.target.bind(('123.456.789.10',0)) #device 1
         self.target.connect(address)
 
         #TODO: change for different interfaces i.g. wifi & ethernet
         self.target2 = socket.socket(soc_family)
+        self.target2.bind(('123.456.789.10',0)) #device 2
         self.target2.connect(address)
 
     #trims header off of packet
@@ -87,8 +89,10 @@ class ConnectionHandler:
         host = self.path[:i]
         path = self.path[i:]
         self.method = "GET"
+        print "Sending requests..."
         self.target.send('%s %s %s\r\nHost:%s\r\nRange: %s\r\n\r\n'%(self.method, path, self.protocol, host, self.range1)+ self.client_buffer)
         self.target2.send('%s %s %s\r\nHost:%s\r\nRange: %s\r\n\r\n'%(self.method, path, self.protocol, host, self.range2)+ self.client_buffer)
+        print "Requets sent"
 
     #given a key it'll find a value in the header
     def findHeaderInfo(self, header, key):
@@ -98,7 +102,7 @@ class ConnectionHandler:
             print "cannot find " + key
             return value
         else:
-            index = index + len(key) + 2    # add 2 because of ": "
+            index = index + len(key) + 2    # add to index 2 because of ": " i.g. "Connection: "
         newData = header[index:]
         index2 = newData.find('\r')
         value = newData[:index2]
@@ -111,21 +115,20 @@ class ConnectionHandler:
         self.range1 = "bytes=0-" + str(splitPoint - 1)
         self.range2 = "bytes=" + str(splitPoint) + "-" + str(CONTENT_LENGTH - 1)
 
-
     #"revolving door" to re-direct the packets in the right direction
     def _read_write(self):
         time_out_max = self.timeout/3
         socs = [self.client, self.target, self.target2]
         count = 0
-        SEND_DATA_1 = ""
-        SEND_DATA_2 = ""
-        RANGE_1_DONE = False
+        SEND_DATA_1 = ""                    #container for data from request 1
+        SEND_DATA_2 = ""                    #container for data from request 2
+        RANGE_1_DONE = False                #checks for correct sizes
         RANGE_2_DONE = False
-        SEND_FLAG = False
-        remove_header_1 = False
+        SEND_FLAG = False                   #tells function to send to client
+        remove_header_1 = False             #removes headers
         remove_header_2 = False
-        header_info = "HTTP/1.1 200 OK\r\n\r\n"
-        CONTENT_LENGTH = 0
+        header_info = "HTTP/1.1 200 OK\r\n\r\n" #custom header bc we trimmed them off
+        CONTENT_LENGTH = 0                  #length of file we're downloding
 
         while 1:
             count += 1
@@ -148,18 +151,17 @@ class ConnectionHandler:
                             self.sendRangeRequests()
                         elif(not SEND_FLAG):
                             #determine which interface sent/receive to
-                            if((in_.fileno() == self.target.fileno()) and not RANGE_1_DONE):
+                            if(in_ == self.target and not RANGE_1_DONE):
+                                #trim headers when ended (only beginning)
                                 if(not remove_header_1):
                                     data = self.remove_header(data)
                                     remove_header_1 = True
                                 SEND_DATA_1 += data
-                                # print "Size of SEND_DATA_1: " + str(len(SEND_DATA_1))
-                            if((in_.fileno() == self.target2.fileno()) and not RANGE_2_DONE):
+                            if(in_ == self.target2 and not RANGE_2_DONE):
                                 if(not remove_header_2):
                                     data = self.remove_header(data)
                                     remove_header_2 = True
                                 SEND_DATA_2 += data
-                                # print "Size of SEND_DATA_2: " + str(len(SEND_DATA_2))
 
                             #checks if each request is correct size
                             #if so then start sending
@@ -183,7 +185,7 @@ class ConnectionHandler:
                 break
 
 #start the proxy server and listen for connections on port 8080
-def start_server(host='localhost', port=8081, IPv6=False, timeout=60,
+def start_server(host='localhost', port=8080, IPv6=False, timeout=60,
                   handler=ConnectionHandler):
     if IPv6==True:
         soc_type=socket.AF_INET6
@@ -191,7 +193,7 @@ def start_server(host='localhost', port=8081, IPv6=False, timeout=60,
         soc_type=socket.AF_INET
     soc = socket.socket(soc_type)
     soc.bind((host, port))
-    print "Serving on %s:%d."%(host, port)#debug
+    print "Serving on %s:%d."%(host, port)
     soc.listen(0)
     while 1:
         thread.start_new_thread(handler, soc.accept()+(timeout,))

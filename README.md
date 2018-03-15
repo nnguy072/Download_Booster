@@ -5,8 +5,21 @@ Nam Nguyen, Rodney Ho, Neel Sethia
 
 ## How to Run
 1. Fork/Clone repo and cd into directory
-2. Open up two terminals:
-3. Do these commands (change if host/port if needed): 
+2. Edit PythonProxy for your devices:
+  --* Go to the ```_connect_target()``` function
+  --* Change following code to match your devices
+  ```
+  self.target = socket.socket(soc_family)
+  self.target.bind(('123.456.789.10',0)) #device 1
+  self.target.connect(address)
+
+  #TODO: change for different interfaces i.g. wifi & ethernet
+  self.target2 = socket.socket(soc_family)
+  self.target2.bind(('123.456.789.10',0)) #device 2
+  self.target2.connect(address)
+  ```
+3. Open two terminals
+4. Do these commands (change if host/port if needed):
 
 Terminal 1:
 ```

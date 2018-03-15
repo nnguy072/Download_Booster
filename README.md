@@ -1,15 +1,22 @@
 # HTTP Proxy
 
-----
 ## AUTHORS
 Nam Nguyen, Rodney Ho, Neel Sethia
 
-----
-## Usage
-1. Clone repo and navigate into directory
-2. Run HTTP Proxy via "python PythonProxy.py"
-3. Open another terminal and try "curl -x localhost:8080 <URL>*
+## How to Run
+1. Fork/Clone repo and cd into directory
+2. Open up two terminals:
+3. Do these commands (change if host/port if needed): 
 
+Terminal 1:
+```
+python PythonProxy.py;
+```
+
+Terminal 2*:
+```
+curl -x localhost:8080 <URL>
+```
 *Note only works for websites with "http"
 
 

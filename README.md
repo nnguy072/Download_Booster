@@ -1,4 +1,5 @@
 # HTTP Proxy
+A proxy that emulates MPTCP by sending two GET requests with different ranges.
 
 ## AUTHORS
 Nam Nguyen, Rodney Ho, Neel Sethia
@@ -26,12 +27,11 @@ Terminal 1:
 python PythonProxy.py;
 ```
 
-Terminal 2*:
+Terminal 2:
 ```
-curl -x localhost:8080 <URL>
+curl -x localhost:8080 <URL*>
 ```
 *Note only works for websites with "http"
-
 
 ----
 ## Examples

@@ -1,3 +1,5 @@
+#Base HTTP Proxy was from this guy ---> <F�bio Domingues - fnds3000 in gmail.com>
+
 import socket, thread, select, os, sys
 
 __version__ = '0.1.0 Draft 1'

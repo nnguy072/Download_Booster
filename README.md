@@ -6,8 +6,8 @@ Nam Nguyen, Rodney Ho, Neel Sethia
 ## How to Run
 1. Fork/Clone repo and cd into directory
 2. Edit PythonProxy for your devices:
-  --* Go to the ```_connect_target()``` function
-  --* Change following code to match your devices
+--* Go to the ```_connect_target()``` function
+--* Change following code to match your devices
   ```
   self.target = socket.socket(soc_family)
   self.target.bind(('123.456.789.10',0)) #device 1

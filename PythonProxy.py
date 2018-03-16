@@ -1,4 +1,3 @@
-#Base HTTP Proxy was from this guy ---> <F�bio Domingues - fnds3000 in gmail.com>
 
 import socket, thread, select, os, sys
 
@@ -72,12 +71,12 @@ class ConnectionHandler:
             port = 80
         (soc_family, _, _, _, address) = socket.getaddrinfo(host, port)[0]
         self.target = socket.socket(soc_family)
-        self.target.bind(('123.456.789.10',0)) #device 1
+        self.target.bind(('10.25.1.210',0)) #device 1
         self.target.connect(address)
 
         #TODO: change for different interfaces i.g. wifi & ethernet
         self.target2 = socket.socket(soc_family)
-        self.target2.bind(('123.456.789.10',0)) #device 2
+        self.target2.bind(('10.25.1.210',0)) #device 2
         self.target2.connect(address)
 
     #trims header off of packet
@@ -147,7 +146,7 @@ class ConnectionHandler:
                     if data:
                         #handle GET requests
                         if self.method == "HEAD":
-                            #check if server allows byte ranges
+                            print data
                             CONTENT_LENGTH = int(self.findHeaderInfo(data, "Content-Length"))
                             self.splitRange(CONTENT_LENGTH)
                             self.sendRangeRequests()
@@ -179,7 +178,7 @@ class ConnectionHandler:
                                 print "SENDING DATA..."
                                 out.send(header_info + SEND_DATA_1 + SEND_DATA_2)
                                 print "SENT."
-                                break
+                                return
                         count = 0
             if (SEND_FLAG):
                 break
